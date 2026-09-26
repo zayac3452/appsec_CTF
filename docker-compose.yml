@@ -1,6 +1,6 @@
 services:
   init-secrets:
-    image: busybox:1.36
+    image: cr.yandex/crpnb5ev6mq28qdebg8f/busybox:1.36
     restart: "no"
     environment:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin-ussc}
@@ -13,7 +13,7 @@ services:
       - "tr -d '\\r' < /generate-secrets.sh > /tmp/generate-secrets.sh && /bin/sh /tmp/generate-secrets.sh"
 
   db:
-    image: postgres:16-alpine
+    image: cr.yandex/crpnb5ev6mq28qdebg8f/postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-appsec}
@@ -32,8 +32,7 @@ services:
       retries: 10
 
   api:
-    build: ./backend
-    restart: unless-stopped
+    image: cr.yandex/crpnb5ev6mq28qdebg8f/appsec_ctf-api:1.0.0
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-appsec}
       POSTGRES_DB: ${POSTGRES_DB:-appsec_ctf}
@@ -54,11 +53,7 @@ services:
         condition: service_healthy
 
   web:
-    build:
-      context: ./frontend
-      args:
-        # Пусто = браузер ходит на тот же хост:/api (rewrite в Next → api)
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+    image: cr.yandex/crpnb5ev6mq28qdebg8f/appsec_ctf-web:1.0.0
     restart: unless-stopped
     environment:
       INTERNAL_API_URL: http://api:8000
@@ -69,22 +64,8 @@ services:
     depends_on:
       - api
 
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "0.0.0.0:${HTTP_PORT:-80}:80"
-      - "0.0.0.0:${HTTPS_PORT:-443}:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - web
-      - api
-
   backup:
-    image: postgres:16-alpine
+    image: cr.yandex/crpnb5ev6mq28qdebg8f/postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-appsec}
@@ -111,6 +92,4 @@ volumes:
   postgres_data:
   uploads_data:
   backup_data:
-  caddy_data:
-  caddy_config:
   secrets_data:
